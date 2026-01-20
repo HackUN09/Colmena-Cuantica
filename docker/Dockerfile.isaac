@@ -1,0 +1,32 @@
+# Usar imagen base de NVIDIA Omniverse / Isaac Sim si estuviera disponible públicamente, 
+# o una imagen de PyTorch compatible con CUDA.
+FROM nvcr.io/nvidia/pytorch:23.10-py3
+
+# Evitar prompts interactivos
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    pkg-config \
+    libglvnd0 \
+    libgl1-mesa-dev \
+    libglx0 \
+    libegl1-mesa-dev \
+    libgles2-mesa-dev \
+    freeglut3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configurar directorio de trabajo
+WORKDIR /app
+
+# Copiar requerimientos e instalar
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar el código del proyecto
+COPY . .
+
+# Comando por defecto (será sobreescrito por docker-compose)
+CMD ["python", "main.py"]

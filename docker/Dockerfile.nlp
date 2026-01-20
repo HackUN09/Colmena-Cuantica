@@ -1,0 +1,19 @@
+# Dockerfile para el Motor de Sentimiento (NLP) - COLMENA-CUÁNTICA
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Dependencias mínimas para Transformers
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY src/nlp_service/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/nlp_service/ .
+COPY src/vae_layer/nlp_bert.py ./nlp_engine_logic.py
+
+EXPOSE 8001
+
+CMD ["python", "main.py"]

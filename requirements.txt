@@ -1,0 +1,28 @@
+# COLMENA-CUÁNTICA // PROTOCOLO DE SUPERVIVENCIA (NÚCLEO PURO)
+# Core: torch, numpy, pandas, scipy (Nativos de Imagen NVIDIA 23.10)
+
+# Finanzas & Trading
+ccxt
+yfinance
+
+# Kernel Matemático (Ligeros)
+statsmodels
+arch
+pykalman
+filterpy
+
+# API & Backend
+fastapi
+uvicorn
+python-dotenv
+requests
+psycopg2-binary
+
+# Visualización
+matplotlib
+plotly
+tqdm
+
+# NOTA: 'transformers' y 'scikit-learn' han sido desvinculados temporalmente 
+# del arranque para evitar colapsos binarios por conflictos con SciPy.
+# El sistema operará en modo 'Sentimiento Neutral' hasta estabilización.

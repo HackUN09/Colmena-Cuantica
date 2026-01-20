@@ -1,0 +1,205 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT balance FROM wallets WHERE agente_id = 'agente_0';",
+                "additionalFields": {}
+            },
+            "id": "3eb34b45-e8c5-4ab0-821d-cdd23e6d6b8d",
+            "name": "Recuperar Saldo SQL",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 1,
+            "position": [
+                -624,
+                -256
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "cyNlC2GkWYudwDJB",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "url": "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=100",
+                "options": {}
+            },
+            "id": "3387cd5a-b1e0-48d3-a1f6-ecf0d2822dd7",
+            "name": "Binance Data Pump",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                -416,
+                -256
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "return { json: { candles: $input.all().map(i => i.json), balance: $node[\"Recuperar Saldo SQL\"].json[\"balance\"] || 100.0 } };"
+            },
+            "id": "5a5bf689-ae2e-4445-a827-8cd4841714bc",
+            "name": "Normalizador de Datos",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -192,
+                -256
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://isaac-sim:8000/procesar_inferencia",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({ ticker_data: { BTCUSDT: $json.candles }, news_headlines: [\"Bitcoin maintains stability above 40k\", \"Market awaits FOMC meeting results\"], balance_virtual: $json.balance }) }}",
+                "options": {}
+            },
+            "id": "0fe698bc-23dd-4dd3-a268-3443eef0f2d6",
+            "name": "Inferencia Colmena (Core API)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                32,
+                -256
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "=UPDATE wallets SET balance = {{ $json.inferencias.BTCUSDT.auditoria_tesoro.nuevo_saldo_agente }}, updated_at = NOW() WHERE agente_id = 'agente_0' RETURNING *;",
+                "additionalFields": {}
+            },
+            "id": "3affaab0-c1ae-44e1-9c22-309cbd2b948a",
+            "name": "Actualizar Saldo SQL",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 1,
+            "position": [
+                256,
+                -256
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "cyNlC2GkWYudwDJB",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "=INSERT INTO transactions (agente_id, pnl_bruto, tax_cosecha, saldo_final) VALUES ('agente_0', {{ $node[\"Inferencia Colmena (Core API)\"].json.inferencias.BTCUSDT.auditoria_tesoro.pnl_retenido }}, {{ $node[\"Inferencia Colmena (Core API)\"].json.inferencias.BTCUSDT.auditoria_tesoro.cosecha_enviada_a_reserva }}, {{ $json.balance }}) RETURNING *;",
+                "additionalFields": {}
+            },
+            "id": "a92dafbb-0f6d-4fb5-a0fa-c422a506edc3",
+            "name": "Log de Auditoría SQL",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 1,
+            "position": [
+                480,
+                -256
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "cyNlC2GkWYudwDJB",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 1
+                        }
+                    ]
+                }
+            },
+            "id": "25aa07a8-6a41-4514-b289-ecee53e1bf4a",
+            "name": "Cron (Cada 1 min)",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                -848,
+                -256
+            ]
+        }
+    ],
+    "connections": {
+        "Recuperar Saldo SQL": {
+            "main": [
+                [
+                    {
+                        "node": "Binance Data Pump",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Binance Data Pump": {
+            "main": [
+                [
+                    {
+                        "node": "Normalizador de Datos",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Normalizador de Datos": {
+            "main": [
+                [
+                    {
+                        "node": "Inferencia Colmena (Core API)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Inferencia Colmena (Core API)": {
+            "main": [
+                [
+                    {
+                        "node": "Actualizar Saldo SQL",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Actualizar Saldo SQL": {
+            "main": [
+                [
+                    {
+                        "node": "Log de Auditoría SQL",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Cron (Cada 1 min)": {
+            "main": [
+                [
+                    {
+                        "node": "Recuperar Saldo SQL",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {},
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "62f3ff358f96927ef35e92b23f3796ff5da47ac7d4fcdb918e3513682ad358c3"
+    }
+}

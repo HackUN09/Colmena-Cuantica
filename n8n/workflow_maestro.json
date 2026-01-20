@@ -1,0 +1,107 @@
+{
+    "name": "COLMENA-CUÁNTICA // Ciclo de Inferencia Maestro v3",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 15
+                        }
+                    ]
+                }
+            },
+            "id": "76628fb6-821b-4f93-9c8a-c07a0c9e64f1",
+            "name": "Cron (Cada 15 min)",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=100",
+                "options": {}
+            },
+            "id": "d748f5e1-95c5-4eb8-8f81-817887304f4a",
+            "name": "Binance Data Pump",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "return { json: { candles: $input.all().map(i => i.json) } };"
+            },
+            "id": "8c5f6140-dcee-435a-98ab-ce96b86264cb",
+            "name": "Normalizador de Datos",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://isaac-sim:8000/procesar_inferencia",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({ ticker_data: { BTCUSDT: $json.candles }, news_headlines: [\"Bitcoin maintains stability above 40k\", \"Market awaits FOMC meeting results\"] }) }}",
+                "options": {}
+            },
+            "id": "e987c6d2-a74b-4f93-979c-b15a0c9e64f2",
+            "name": "Inferencia Colmena (Core API)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                1120,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Cron (Cada 15 min)": {
+            "main": [
+                [
+                    {
+                        "node": "Binance Data Pump",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Binance Data Pump": {
+            "main": [
+                [
+                    {
+                        "node": "Normalizador de Datos",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Normalizador de Datos": {
+            "main": [
+                [
+                    {
+                        "node": "Inferencia Colmena (Core API)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {}
+}

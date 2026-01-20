@@ -1,0 +1,314 @@
+{
+    "name": "COLMENA-CUÁNTICA v7.12 // Learning & Telemetry",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "minutes",
+                            "minutesInterval": 1
+                        }
+                    ]
+                }
+            },
+            "id": "trigger_cron",
+            "name": "Cron Operativo (1 min)",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                -1500,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "hours"
+                        }
+                    ]
+                }
+            },
+            "id": "trigger_study",
+            "name": "Cron Estudio (1 hora)",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                -1500,
+                250
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://isaac-sim:8000/aprender",
+                "options": {}
+            },
+            "id": "study_endpoint",
+            "name": "Sesión de Estudio (IA)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                -1300,
+                250
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT'];\nconst results = {};\nlet simulated = false;\n\nfor (const symbol of symbols) {\n  try {\n    const response = await this.helpers.request({\n      method: 'GET',\n      url: `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1m&limit=100`,\n      json: true\n    });\n    results[symbol] = response;\n  } catch (error) {\n    simulated = true;\n    results[symbol] = Array(100).fill([0, \"40000\", \"40500\", \"39500\", \"40200\", \"100\", 0, \"0\", 0, \"0\", \"0\", \"0\"]);\n  }\n}\n\nreturn { ticker_data: results, mode: simulated ? 'EMERGENCY_MOCK' : 'LIVE' };"
+            },
+            "id": "binance_master",
+            "name": "Binance Master Harvester",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -1300,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://news.google.com/rss/search?q=cryptocurrency+geopolitics+market&hl=en-US",
+                "options": {}
+            },
+            "id": "news_rss",
+            "name": "Google News Feed",
+            "type": "n8n-nodes-base.rssFeedRead",
+            "typeVersion": 1,
+            "position": [
+                -1100,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "return [ { json: { data: $input.all().map(i => i.json) } } ];"
+            },
+            "id": "news_aggregator",
+            "name": "News Aggregator (Manual)",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -900,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "SELECT agente_id, balance FROM wallets ORDER BY agente_id ASC;",
+                "additionalFields": {}
+            },
+            "id": "sql_get_balances",
+            "name": "Recuperar Saldos",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 1,
+            "position": [
+                -700,
+                0
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "cyNlC2GkWYudwDJB",
+                    "name": "Postgres account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "return [ { json: { data: $input.all().map(i => i.json) } } ];"
+            },
+            "id": "hive_aggregator",
+            "name": "Hive Aggregator (Manual)",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -500,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const harvester = $(\"Binance Master Harvester\").first().json;\nconst ticker_data = harvester.ticker_data;\nconst mode = harvester.mode;\n\nconst rawNews = $(\"News Aggregator (Manual)\").first().json.data;\nconst news = rawNews.map(i => i.title).slice(0, 30);\n\nconst rawBalances = $(\"Hive Aggregator (Manual)\").first().json.data;\nconst balances = {};\nrawBalances.forEach(b => {\n  balances[b.agente_id] = b.balance;\n});\n\nreturn {\n  ticker_data,\n  news,\n  balances,\n  system_mode: mode\n};"
+            },
+            "id": "master_consolidator",
+            "name": "Consolidador Maestro",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -300,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://isaac-sim:8000/procesar_inferencia",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"ticker_data\": {{ JSON.stringify($json.ticker_data) }},\n  \"news_headlines\": {{ JSON.stringify($json.news) }},\n  \"balances\": {{ JSON.stringify($json.balances) }}\n}",
+                "options": {}
+            },
+            "id": "nvidia_inference",
+            "name": "Inferencia NVIDIA",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                -100,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Generador SQL Nativo NVIDIA v7.11\nconst input = $json;\nconst agentes = input.agentes || input.Inferencias || input;\n\nif (!agentes || typeof agentes !== 'object') return [];\n\nlet sql = \"\";\nfor (const id in agentes) {\n    const data = agentes[id];\n    if (data && data.auditoria_tesoro) {\n        const report = data.auditoria_tesoro;\n        const saldo = report.nuevo_saldo_agente;\n        const pnl = report.pnl_retenido || 0;\n        const cosecha = report.cosecha_enviada_a_reserva || 0;\n        \n        sql += `UPDATE wallets SET balance = ${saldo}, updated_at = NOW() WHERE agente_id = '${id}'; `;\n        sql += `INSERT INTO transactions (agente_id, pnl_bruto, tax_cosecha, saldo_final) VALUES ('${id}', ${pnl}, ${cosecha}, ${saldo}); `;\n    }\n}\n\nreturn (sql !== \"\") ? [ { json: { query: sql } } ] : [];"
+            },
+            "id": "sql_generator",
+            "name": "Generador SQL",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                100,
+                0
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "executeQuery",
+                "query": "={{ $json.query }}",
+                "additionalFields": {}
+            },
+            "id": "sql_final_write",
+            "name": "Escritura Final",
+            "type": "n8n-nodes-base.postgres",
+            "typeVersion": 1,
+            "position": [
+                300,
+                0
+            ],
+            "credentials": {
+                "postgres": {
+                    "id": "cyNlC2GkWYudwDJB",
+                    "name": "Postgres account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Cron Operativo (1 min)": {
+            "main": [
+                [
+                    {
+                        "node": "Binance Master Harvester",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Cron Estudio (1 hora)": {
+            "main": [
+                [
+                    {
+                        "node": "Sesión de Estudio (IA)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Binance Master Harvester": {
+            "main": [
+                [
+                    {
+                        "node": "Google News Feed",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Google News Feed": {
+            "main": [
+                [
+                    {
+                        "node": "News Aggregator (Manual)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "News Aggregator (Manual)": {
+            "main": [
+                [
+                    {
+                        "node": "Recuperar Saldos",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Recuperar Saldos": {
+            "main": [
+                [
+                    {
+                        "node": "Hive Aggregator (Manual)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Hive Aggregator (Manual)": {
+            "main": [
+                [
+                    {
+                        "node": "Consolidador Maestro",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Consolidador Maestro": {
+            "main": [
+                [
+                    {
+                        "node": "Inferencia NVIDIA",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Inferencia NVIDIA": {
+            "main": [
+                [
+                    {
+                        "node": "Generador SQL",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generador SQL": {
+            "main": [
+                [
+                    {
+                        "node": "Escritura Final",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {},
+    "meta": {
+        "templateCredsSetupCompleted": true
+    }
+}

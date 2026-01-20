@@ -1,0 +1,83 @@
+services:
+  isaac-sim:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.isaac
+    image: colmena-cuantica-isaac:latest
+    container_name: docker-isaac-sim-1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    volumes:
+      - ..:/app
+      - isaac_data:/root/.local/share/ov
+    env_file:
+      - ../.env
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=n8n
+      - POSTGRES_USER=n8n_user
+      - POSTGRES_PASSWORD=n8n_pass
+    ports:
+      - "8000:8000" # API (FastAPI)
+    networks:
+      - quant-net
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n_user
+      - DB_POSTGRESDB_PASSWORD=n8n_pass
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - quant-net
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_DB=n8n
+      - POSTGRES_USER=n8n_user
+      - POSTGRES_PASSWORD=n8n_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432" # Mapeo para monitor externo
+    networks:
+      - quant-net
+
+  nlp-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.nlp
+    image: colmena-cuantica-nlp:latest
+    container_name: nlp-service
+    ports:
+      - "8001:8001"
+    networks:
+      - quant-net
+
+networks:
+  quant-net:
+    driver: bridge
+
+volumes:
+  isaac_data:
+  n8n_data:
+  postgres_data:

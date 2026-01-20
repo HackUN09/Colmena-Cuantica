@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Data & Models
+data/raw/
+data/processed/
+models/weights/
+*.h5
+*.pth
+*.onnx
+
+# Isaac Lab & Omniverse
+logs/
+_isaac_sim/
+docker/isaac_lab_data/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
