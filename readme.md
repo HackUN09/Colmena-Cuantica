@@ -4,14 +4,19 @@
 
 Este repositorio aloja la versión **V1.0 (Stable)** del Sistema de Trading Algorítmico Jerárquico "Colmena Cuántica". Esta versión implementa la arquitectura **Bio-Espectral**, donde un enjambre de agentes de autogestión (SAC) opera sobre un **Tensor Fractal** del mercado.
 
-## 🌌 Arquitectura Bio-Espectral (Scientific Spec)
+## 🌌 Arquitectura Bio-Espectral (White Paper)
 
-> Ver documentación completa en `/docs`:
-> - [📘 Especificación Matemática (MATH_SPEC.md)](docs/MATH_SPEC.md)
-> - [🧬 Especificación Biológica (BIO_SPEC.md)](docs/BIO_SPEC.md)
-> - [🏗️ Especificación Técnica (TECH_SPEC.md)](docs/TECH_SPEC.md)
+> ** DOCUMENTACIÓN OFICIAL (Nivel Académico) **:
+>
+> 📄 **[LEER EL WHITE PAPER COMPLETO (WHITE_PAPER.md)](docs/WHITE_PAPER.md)**
+>
+> Anexos Técnicos:
+> - [📘 Anexo Matemático (MATH_SPEC.md)](docs/MATH_SPEC.md)
+> - [🧬 Anexo Biológico (BIO_SPEC.md)](docs/BIO_SPEC.md)
+> - [🏗️ Anexo de Ingeniería (TECH_SPEC.md)](docs/TECH_SPEC.md)
 
 ### 1. Núcleo Matemático (The Atom)
+(Ver Capítulo 1 del White Paper)
 El sistema abandona el concepto de "frecuencia estática". Utiliza **Diferenciación Fraccionaria** ($\nabla^{0.4}$) e **Hipercubos Tensoriales** ($\mathbb{R}^{27}$) para representar el mercado como un fluido dinámico.
 
 ### 2. Ingeniería Fractal (The 3-Layer Tensor)
