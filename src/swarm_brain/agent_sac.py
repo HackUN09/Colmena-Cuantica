@@ -7,10 +7,14 @@ from torch.distributions import Normal
 class PolicyNetwork(nn.Module):
     """
     Red Actor: Emite la media y desviación estándar para la distribución de acciones de cartera.
-    Entrada: Espacio Fractal (3x8 Latent) + Sentimiento (3) = 27 dims.
+    Entrada: Estado Completo v12.0 = 51 dims:
+        - VAE Latents (27): micro(8) + meso(8) + macro(8) + sentiment(3)
+        - Math Features (16): spectral(2) + physics(4) + prob(4) + stats(2) + linalg(2) + signals(2)
+        - Self-Awareness (5): balance, pnl, sharpe, streak, win_rate
+        - Swarm Collective (3): bull_ratio, avg_pnl, rank
     Salida: 10 Tickers + 1 Cash = 11 dims.
     """
-    def __init__(self, state_dim=27, action_dim=11): 
+    def __init__(self, state_dim=51, action_dim=11): 
         super(PolicyNetwork, self).__init__()
         self.fc1 = nn.Linear(state_dim, 256)
         self.fc2 = nn.Linear(256, 256)
@@ -39,9 +43,9 @@ class PolicyNetwork(nn.Module):
 
 class SoftActorCritic:
     """
-    Agente individual usando SAC.
+    Agente individual usando SAC con estado completo de 51 dimensiones.
     """
-    def __init__(self, state_dim=27, action_dim=11, lr=3e-4, time_dilation=1):
+    def __init__(self, state_dim=51, action_dim=11, lr=3e-4, time_dilation=1):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.policy = PolicyNetwork(state_dim, action_dim).to(self.device)
         self.optimizer = optim.Adam(self.policy.parameters(), lr=lr)
@@ -81,7 +85,8 @@ class SoftActorCritic:
 
 if __name__ == "__main__":
     agent = SoftActorCritic()
-    dummy_state = torch.randn(27)
+    dummy_state = torch.randn(51)  # Estado completo v12.0
     action = agent.select_action(dummy_state)
+    print(f"Estado dim: 51, Acción dim: 11")
     print(f"Suma de pesos de la acción: {action.sum():.2f}")
     print(f"Muestra de pesos (top 5): {action[:5]}")

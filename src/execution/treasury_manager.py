@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
+from collections import deque
 
 class TreasuryManager:
     """
@@ -24,17 +25,24 @@ class TreasuryManager:
        dH_i: Fracción de beneficio cosechado hacia el fondo maestro.
     """
 
-    def __init__(self, master_reserve_addr: str, harvest_rate: float = 0.20):
+    def __init__(self, master_reserve_addr: str, harvest_rate: float = 0.20, commission_rate: float = 0.0015):
         """
         Args:
             master_reserve_addr (str): Dirección o identificador de la moneda de reserva (ej. USDC).
             harvest_rate (float): Tasa de cosecha \eta \in [0, 1]. Por defecto 20%.
+            commission_rate (float): Tasa de comisión por operación (ej. 0.0015 = 0.15%).
         """
         self.master_reserve_addr = master_reserve_addr
         self.eta = harvest_rate
+        self.comm_rate = commission_rate
         self.agentes_ledger = {} # Dict[agente_id, float]
         self.reserve_fund = 0.0
         self.transaction_log = []
+        
+        # NUEVOS: Self-awareness tracking
+        self.agent_history = { }  # Dict[agente_id, deque[(timestamp, balance, pnl)]]
+        self.loss_streaks = {}  # Dict[agente_id, int]
+        self.initial_capital = {}  # Dict[agente_id, float]
 
     def capitalizar_colmena(self, total_capital: float, n_agentes: int):
         """
@@ -45,36 +53,53 @@ class TreasuryManager:
         
         individual_share = total_capital / n_agentes
         for i in range(n_agentes):
-            self.agentes_ledger[f"agente_{i}"] = individual_share
+            agent_id = f"agente_{i}"
+            self.agentes_ledger[agent_id] = individual_share
+            self.agent_history[agent_id] = deque(maxlen=100)  # Últimos 100 trades
+            self.loss_streaks[agent_id] = 0
+            self.initial_capital[agent_id] = individual_share
             
         print(f"[TREASURY] Colmena proyectada: {n_agentes} carteras de {individual_share:.2f} USDT.")
 
-    def procesar_cierre_orden(self, agente_id: str, pnl_neto: float):
+    def procesar_cierre_orden(self, agente_id: str, pnl_neto: float, volume_usd: float = 0.0):
         """
-        Actualiza la cartera virtual y ejecuta la 'Cosecha de Beneficios'.
+        Actualiza la cartera virtual y ejecuta la 'Cosecha de Beneficios' y 'Comisión de Binance'.
         
-        La función de Cosecha H(pnl) se define como:
-        H(\Delta P) = \eta \cdot \max(0, \Delta P)
-        
-        La actualización del saldo virtual es:
-        v_i(t+1) = v_i(t) + \Delta P - H(\Delta P)
+        Dinámica:
+        1. Descontar Comisión: pnl_bruto = pnl_neto - (volume_usd * comm_rate)
+        2. Cosechar si es positivo.
+        3. Actualizar Saldo.
         """
         if agente_id not in self.agentes_ledger:
-            # Si el agente no está inicializado (ej. n8n no mandó el estado), 
-            # lo inicializamos con saldo cero para evitar crashes.
-            self.agentes_ledger[agente_id] = 100.0 # Saldo base de cortesía
+            self.agentes_ledger[agente_id] = 10.0 # Saldo base estándar
 
-        # 1. Calcular Cosecha (Solo si hay beneficio positivo)
+        # 0. Aplicar Comisión de Fricción (Realismo Binance++)
+        comision = volume_usd * self.comm_rate
+        pnl_bruto = pnl_neto - comision
+        # 1. Calcular Cosecha (Solo si hay beneficio positivo después de comisión)
         cosecha = 0.0
-        if pnl_neto > 0:
-            cosecha = pnl_neto * self.eta
+        if pnl_bruto > 0:
+            cosecha = pnl_bruto * self.eta
             self.reserve_fund += cosecha
             
         # 2. Actualizar saldo virtual (Descontando la cosecha)
-        pnl_retenido = pnl_neto - cosecha
+        pnl_retenido = pnl_bruto - cosecha
         self.agentes_ledger[agente_id] += pnl_retenido
         
-        # 3. Registrar en log de auditoría
+        # 3. NUEVO: Actualizar self-awareness metrics
+        timestamp = datetime.now().timestamp()
+        new_balance = self.agentes_ledger[agente_id]
+        self.agent_history.setdefault(agente_id, deque(maxlen=100)).append(
+            (timestamp, new_balance, pnl_retenido)
+        )
+        
+        # Update loss streak
+        if pnl_retenido < 0:
+            self.loss_streaks[agente_id] = self.loss_streaks.get(agente_id, 0) + 1
+        else:
+            self.loss_streaks[agente_id] = 0
+        
+        # 4. Registrar en log de auditoría
         self.transaction_log.append({
             'timestamp': datetime.now().isoformat(),
             'agente_id': agente_id,

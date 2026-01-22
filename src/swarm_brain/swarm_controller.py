@@ -12,6 +12,8 @@ class SwarmController:
     """
     def __init__(self, n_agents=100, state_dim=27, action_dim=11, load_path=None):
         self.n_agents = n_agents
+        self.state_dim = state_dim
+        self.action_dim = action_dim
         self.population = []
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
@@ -96,7 +98,7 @@ class SwarmController:
             if i < len(self.population):
                 self.population[i].policy.load_state_dict(state_dict)
 
-    def save_checkpoint(self, path):
+    def save_checkpoint(self, path, metadata: dict = None):
         """
         Persistencia Atómica compatible con StorageManager.
         """
@@ -104,7 +106,8 @@ class SwarmController:
         data = {
             "population_state": self.get_population_state_dicts(),
             "timestamp": datetime.now().isoformat(),
-            "n_agents": self.n_agents
+            "n_agents": self.n_agents,
+            "metadata": metadata or {}
         }
         torch.save(data, path)
         print(f"[HIVE] Swarm state saved to {path} (Meta-format)")
@@ -112,17 +115,22 @@ class SwarmController:
     def load_population_state(self, path):
         """
         Recuperación Atómica compatible con formatos híbridos.
+        Retorna la metadata si existe.
         """
         try:
             data = torch.load(path, map_location=self.device)
+            metadata = {}
             if isinstance(data, dict) and "population_state" in data:
                 self.set_population_state_dicts(data["population_state"])
+                metadata = data.get("metadata", {})
                 print(f"[HIVE] Swarm restored from {path} (Meta-format)")
             else:
                 self.set_population_state_dicts(data)
                 print(f"[HIVE] Swarm restored from {path} (Legacy-format)")
+            return metadata
         except Exception as e:
             print(f"[HIVE ERROR] Corrupt Brain File {path}: {e}")
+            return {}
 
 if __name__ == "__main__":
     # Test Sanity

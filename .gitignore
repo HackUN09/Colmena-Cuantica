@@ -8,6 +8,7 @@ venv/
 # Data & Models
 data/raw/
 data/processed/
+data/historical/
 models/weights/
 *.h5
 *.pth

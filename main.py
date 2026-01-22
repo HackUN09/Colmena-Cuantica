@@ -42,9 +42,40 @@ from src.swarm_brain.replay_buffer import SharedReplayBuffer
 
 # --- Initialize Subsystems ---
 print("[BOOT] Initializing Bio-Spectral Swarm...")
-swarm = SwarmController(n_agents=100) # Instancia agentes con time_dilation aleatorio
+swarm = SwarmController(n_agents=100, state_dim=51, action_dim=11)  # UPDATED: 51-dim state
 storage_manager = StorageManager()
 replay_buffer = SharedReplayBuffer(capacity=50000)
+
+# ==================== TRANSFER LEARNING ====================
+# Cargar modelos pre-entrenados si existen
+PRETRAINED_DIR = "models/pretrained"
+USE_PRETRAINED = os.path.exists(f"{PRETRAINED_DIR}/final_pretrained.pkl") or \
+                 os.path.exists(f"{PRETRAINED_DIR}/elite_agent_1.pth")
+
+if USE_PRETRAINED:
+    print(f"[TRANSFER LEARNING] Detectados modelos pre-entrenados en {PRETRAINED_DIR}/")
+    
+    # Opción 1: Cargar elite agents (más rápido)
+    elite_loaded = 0
+    for i in range(min(10, len(swarm.population))):
+        elite_path = f"{PRETRAINED_DIR}/elite_agent_{i+1}.pth"
+        if os.path.exists(elite_path):
+            try:
+                swarm.population[i].policy.load_state_dict(torch.load(elite_path, map_location=device))
+                elite_loaded += 1
+            except Exception as e:
+                print(f"  ⚠️  Error cargando {elite_path}: {e}")
+    
+    if elite_loaded > 0:
+        print(f"  ✅ {elite_loaded} elite agents cargados con conocimiento offline")
+        print(f"  🧠 Agentes 0-{elite_loaded-1} iniciando con IQ alto")
+        print(f"  🎲 Agentes {elite_loaded}-99 iniciando random (diversidad)")
+    else:
+        print(f"  ⚠️  No se pudieron cargar elite agents. Iniciando desde cero.")
+else:
+    print(f"[GENESIS] No hay modelos pre-entrenados. Iniciando desde cero.")
+# ============================================================
+
 
 # MARKET MEMORY: Buffer Fractal (Micro-history)
 # Necesitamos al menos 240 mins para la Capa Macro
@@ -70,7 +101,7 @@ def sync_treasury_to_db(ledger, reserve):
         with conn.cursor() as cur:
             for ag_id, balance in ledger.items():
                 cur.execute("INSERT INTO wallets (agente_id, balance) VALUES (%s, %s) ON CONFLICT (agente_id) DO UPDATE SET balance = EXCLUDED.balance;", (ag_id, balance))
-            cur.execute("INSERT INTO transactions (timestamp, agente_id, pnl_bruto, tax_cosecha, balance_resultante) VALUES (%s, %s, %s, %s, %s);", (datetime.now(), "SINDICATO_COLMENA", 0.0, reserve, sum(ledger.values())))
+            cur.execute("INSERT INTO transactions (timestamp, agente_id, pnl_bruto, tax_cosecha, saldo_final) VALUES (%s, %s, %s, %s, %s);", (datetime.now(), "SINDICATO_COLMENA", 0.0, reserve, sum(ledger.values())))
             conn.commit()
         conn.close()
     except Exception as e:
@@ -237,8 +268,9 @@ async def procesar_inferencia(data: IngestData):
             action = swarm.get_action(agente_id, state)
             current_actions.append("COMPRA" if action[0] > 0.5 else "VENTA")
             
-            # PnL Calculation (Top 10)
+            # PnL Calculation & Real-world Friction
             total_real_pnl = 0.0
+            volume_USD = 0.0
             balance = treasury.agentes_ledger[agente_id]
             
             # Calcular retornos
@@ -252,6 +284,7 @@ async def procesar_inferencia(data: IngestData):
                     w = action[idx]
                     pnl = ret * balance * w
                     total_real_pnl += pnl
+                    volume_USD += abs(w) * balance
                     
             # Aprendizaje
             if agente_id in last_states:
@@ -260,8 +293,8 @@ async def procesar_inferencia(data: IngestData):
             last_states[agente_id] = state
             last_actions[agente_id] = action
             
-            # Ledger e Informe
-            harvest = treasury.procesar_cierre_orden(agente_id, total_real_pnl)
+            # Ledger e Informe (Con Fricción 0.15%)
+            harvest = treasury.procesar_cierre_orden(agente_id, total_real_pnl, volume_usd=volume_USD)
             results[agente_id] = {"pnl_total": total_real_pnl, "auditoria": harvest["auditoria_tesoro"]}
 
             # AUDIT LOG (Solo para Agente 0 para no saturar)

@@ -1,32 +1,96 @@
-# Changelog
+# COLMENA CUÁNTICA V1.0 - Changelog
 
-All notable changes to the "Colmena Cuántica" ecosystem will be documented here.
+## V1.0 (2026-01-21) - "Arsenal Completo"
 
-## [1.0.0] - 2026-01-20 (Gold Master)
-### Added
-- **Protocol Fourier**: Implementation of Bio-Spectral Resonance architecture.
-- **Fractal Tensors**: Multi-resolution input space ($\mathbb{R}^{27}$) combining Micro (1m), Meso ($T_i$), and Macro (4h) layers.
-- **Genetic Time Dilation**: Agents now possess a unique gene $T_i \in [10, 60]$ defining their perception of time.
-- **Atomic Persistence**: Checkpoint saving is now atomic via `os.replace` to prevent corruption.
-- **Health Monitor**: New `/health` endpoint in API.
-- **Scientific Documentation**: Added `MATH_SPEC`, `BIO_SPEC`, `TECH_SPEC`.
+### ✨ Nuevas Características
 
-### Changed
-- **Ticker Universe**: Reduced to Top 10 High-Liquidity assets for focused learning.
-- **Network Topology**: Policy Network upgraded to `27 -> 11` dimensions.
-- **Training Engine**: `GymEngine` now constructs tensors on-the-fly (lazy evaluation).
+**Estado Expandido: 27 → 51 Dimensiones**
+- 27 dims VAE (micro, meso, macro, sentiment)
+- +16 dims Arsenal Matemático:
+  - Spectral Analysis (Fourier, PSD)
+  - Econofísica (Hurst, Fractales, Lyapunov)
+  - Probabilidad (HMM, EVT)
+  - Estadística (GARCH, ARIMA)
+  - Álgebra Lineal (RMT, PCA)
+  - Procesamiento de Señales (Wavelets, Kalman)
+- +5 dims Self-Awareness (balance, P&L, streaks, win rate)
+- +3 dims Swarm Intelligence (consensus, ranking)
 
-### Removed
-- Legacy support for static frequency analysis.
-- `src/isaac_sim` and `src/nlp_service` (dead code).
-- Deprecated 100d vector checkpoints.
+**Sistema de Pre-entrenamiento Offline**
+- script `train_offline_full.py` completo
+- Simulador histórico con 6 meses de datos
+- 500 episodios × 1000 ticks (2-3h en RTX 3060
+)
+- Transfer learning automático a modo live
+
+**Invarianzas Matemáticas**
+- Scale invariance (log-returns, robust z-scores)
+- Time translation invariance
+- Fractional differentiation (preserva memoria)
+
+**Sistema Maestro Unificado**
+- 16 opciones integradas
+- Testing incluido (quick test, compilation check)
+- Configuración centralizada en `src/config.py`
+
+### 🏗️ Estructura del Proyecto
+
+**Nueva organización:**
+```
+Raíz/
+├── main.py (live mode)
+├── sistema_maestro.sh (control central)
+├── scripts/ (download, train, monitor)
+├── tests/ (quick_test)
+└── src/ (todo el código core)
+```
+
+### 🐛 Fixes
+
+- Corregidos imports faltantes (pykalman, pywavelets, arch, hmmlearn)
+- TreasuryManager: self-awareness tracking inicialización
+- SAC: compatibilidad con 51 dimensiones
+- Paths actualizados después de reorganización
+
+### 📚 Documentación
+
+- README.md épico con rigor matemático
+- WHITE_PAPER.md actualizado a V1.0
+- MATH_SPEC.md con estado de 51-dim
+- Guía completa del Sistema Maestro
+- Filosofía vs Implementación explicada
+
+### ⚙️ Configuración
+
+**Configurable en `src/config.py`:**
+- N_AGENTS (100-300)
+- N_EPISODES (100-1000)
+- TICKS_PER_EPISODE (1000)
+- HARVEST_RATE (0.20)
+- COMMISSION_RATE (0.0015)
+- Activación de features matemáticas
+
+### 🔬 Testing
+
+- Test rápido (1 min) integrado
+- Test de compilación
+- Workflow completo documentado
 
 ---
-## [0.9.0] - 2026-01-18 (Beta)
-### Added
-- Sentiment Analysis via VAE Latent Space ($z \in \mathbb{R}^8$).
-- Initial Docker Infrastructure.
 
-### Fixed
-- Fixed recursion error in `src` directory structure.
-- Stabilized `tqdm` progress bars in Docker output.
+## Estado Actual
+
+**Progreso:** 30/45 tareas (67%)  
+**Sistema:** ✅ OPERATIONAL  
+**Ready for:** Testing offline → Live deployment
+
+**Próximos pasos:**
+1. Test rápido (opción 08)
+2. Entrenar offline (opción 06)
+3. Deploy live (opción 07)
+
+---
+
+**Versión:** V1.0  
+**Hardware:** NVIDIA RTX 3060 12GB  
+**Stack:** Python 3.10+, PyTorch 2.0+, CUDA 11.8+

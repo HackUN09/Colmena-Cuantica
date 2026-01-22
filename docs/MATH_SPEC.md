@@ -7,10 +7,10 @@ El Protocolo Fourier propone una arquitectura de trading algorítmico basada en 
 
 ## 1. Espacio de Estado Tensorial ($\mathcal{S}$)
 
-El estado observable por el enjambre en el tiempo $t$ se define como un vector de características $\mathbf{x}_t \in \mathbb{R}^{27}$, construido por la concatenación de tres sub-espacios vectoriales ortogonales: Micro, Meso y Macro.
+El estado observable por el enjambre en el tiempo $t$ se define como un vector de características $\mathbf{x}_t \in \mathbb{R}^{51}$, construido por la concatenación de cuatro sub-espacios vectoriales:
 
 $$
-\mathbf{x}_t = [\mathbf{z}_{micro} \oplus \mathbf{z}_{meso} \oplus \mathbf{z}_{macro} \oplus \mathbf{z}_{sent}]
+\mathbf{x}_t = [\mathbf{z}_{VAE}^{27} \oplus \mathbf{z}_{MathArsenal}^{16} \oplus \mathbf{z}_{SelfAware}^{5} \oplus \mathbf{z}_{Swarm}^{3}]
 $$
 
 ### 1.1 Capa Micro (The Atom)
@@ -100,5 +100,4 @@ Donde:
 *   $\alpha$ es la temperatura (coeficiente de exploración/explotación), fijada dinámicamente.
 
 ---
-**Documento Generado Automáticamente por**: Sistema Maestro v10.0
-**Fecha**: 2026-01-20
+

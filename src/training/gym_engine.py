@@ -1,4 +1,5 @@
 import torch
+import random
 import pandas as pd
 import numpy as np
 import os
@@ -101,21 +102,28 @@ class GymEngine:
         
         self.treasury.capitalizar_colmena(1000.0, self.swarm.n_agents)
         
-        # --- RESILIENCIA ---
+        # --- RESILIENCIA (SOPORTE RESUME) ---
         checkpoint_path = 'models/cerebro_checkpoint.pth'
-        # NOTA: En Hard Fork, si el checkpoint es viejo (vector 100d), fallará.
-        # Es mejor renombrarlo o borrarlo manualmente si se desea reset real.
+        start_epoch = 0
         if os.path.exists(checkpoint_path):
-            print(f"[RECOVER] Intentando cargar checkpoint...")
+            print(f"[RECOVER] Detectado checkpoint anterior. Sincronizando...")
             try:
-                self.swarm.load_population_state(checkpoint_path)
-            except:
-                print("[RECOVER WARNING] Checkpoint incompatible (Hard Fork detected). Iniciando Fresh.")
+                metadata = self.swarm.load_population_state(checkpoint_path)
+                start_epoch = metadata.get("last_epoch", 0)
+                if start_epoch > 0:
+                    print(f"[RECOVER] Resumiendo desde Generación {start_epoch}...")
+            except Exception as e:
+                print(f"[RECOVER WARNING] Error cargando checkpoint: {e}. Iniciando Fresh.")
+        
+        # Si ya se alcanzó la meta, preguntamos
+        if start_epoch >= iterations:
+            print(f"[GYM] La meta de {iterations} generaciones ya ha sido alcanzada anteriormente ({start_epoch}).")
+            return
 
         # MACRO WINDOW (Tendencia): 4 horas = 240 minutos
         MACRO_WINDOW = 240
         
-        for epoch in range(iterations):
+        for epoch in range(start_epoch, iterations):
             # Empezamos en MACRO_WINDOW para tener historial suficiente
             start_idx = MACRO_WINDOW + 60 
             pbar = tqdm(range(start_idx, len(df_prices) - k_future), desc=f"Gen {epoch+1}", mininterval=1.0, dynamic_ncols=True, leave=True)
@@ -159,20 +167,18 @@ class GymEngine:
                     action = self.swarm.get_action(agente_id, state)
                     balance = self.treasury.agentes_ledger[agente_id]
                     
-                    # Calcular PnL usando solo los activos Top 10 (Action dim 11: 10 assets + 1 cash)
+                    # Calcular PnL y Volumen para aplicación de comisiones
                     pnl_total = 0.0
-                    # action[0..9] son pesos de activos, action[10] es cash
-                    # Asumimos que el orden de tickers en df_ffd coincide con TICKER_UNIVERSE
-                    # Validación de orden:
+                    vol_agente = 0.0
                     for idx_asset, ticker in enumerate(tickers):
-                        # Obtenemos el peso asignado a este activo (que está en idx_asset de la salida neuronal)
                         weight = action[idx_asset]
                         ret = retornos_paso[idx_asset]
                         pnl_total += ret * balance * weight
+                        vol_agente += abs(weight) * balance
                         
-                    # 4. Aprendizaje
+                    # 4. Aprendizaje (Con Fricción Realista)
                     agent.update(state, action, pnl_total)
-                    self.treasury.procesar_cierre_orden(agente_id, pnl_total)
+                    self.treasury.procesar_cierre_orden(agente_id, pnl_total, volume_usd=vol_agente)
                     
                 if t % 100 == 0:
                      resumen = self.treasury.obtener_resumen_enjambre()
@@ -184,14 +190,14 @@ class GymEngine:
             self.evolution.evolve(metrics)
             
             self.treasury.capitalizar_colmena(1000.0, self.swarm.n_agents)
-            self.save_brain('models/cerebro_checkpoint.pth')
+            self.save_brain('models/cerebro_checkpoint.pth', metadata={"last_epoch": epoch + 1})
             print(f"[GYM] Generación {epoch+1} completada.\n")
 
-    def save_brain(self, path='models/cerebro_colmena_entrenado.pth'):
+    def save_brain(self, path='models/cerebro_colmena_entrenado.pth', metadata: dict = None):
         # Atomic Save: Write to .tmp first, then rename.
         tmp_path = path + ".tmp"
         try:
-            self.swarm.save_checkpoint(tmp_path)
+            self.swarm.save_checkpoint(tmp_path, metadata=metadata)
             if os.path.exists(tmp_path):
                 os.replace(tmp_path, path) # Atomic operation on POSIX/Windows (mostly)
                 print(f"[GYM] Brain saved successfully (Atomic): {path}")

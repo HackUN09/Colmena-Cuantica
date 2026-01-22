@@ -40,7 +40,8 @@ def monitor_tesoro():
                 n_ops = cur.fetchone()[0]
                 
                 # 4. Obtener todos los balances (ordenados)
-                cur.execute("SELECT agente_id, balance FROM wallets ORDER BY CAST(SUBSTRING(agente_id FROM 8) AS INTEGER);")
+                # 4. Obtener todos los balances (ordenados)
+                cur.execute("SELECT agente_id, balance FROM wallets WHERE agente_id LIKE 'agente_%%' ORDER BY CAST(SUBSTRING(agente_id FROM 8) AS INTEGER);")
                 all_wallets = cur.fetchall()
                 
                 os.system('cls' if os.name == 'nt' else 'clear')
@@ -67,7 +68,7 @@ def monitor_tesoro():
                             
                             row_str += f"{color}{bal:>10.7f} " # 7 decimales (Alta Sensibilidad)
                         else:
-                            row_str += f"{Fore.GRAY} ??.????? "
+                            row_str += f"{Fore.LIGHTBLACK_EX} ??.????? "
                     print(row_str)
                 
                 print(f"\n{Fore.LIGHTBLACK_EX}--------------------------------------------------------------------------")

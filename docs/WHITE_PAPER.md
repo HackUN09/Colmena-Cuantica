@@ -1,10 +1,11 @@
-# COLMENA CUÁNTICA: PROTOCOLO FOURIER (V1.0)
-## A Bio-Spectral approach to High-Frequency Algorithmic Trading via Fractal Tensors
+# COLMENA CUÁNTICA V1.0: WHITE PAPER
+## A Bio-Spectral Approach to Algorithmic Trading via Swarm Intelligence
 
-**Author**: HackUN09 & Antigravity Core  
-**Date**: January 20, 2026  
-**Version**: 1.0.0 (Gold Master)  
-**Status**: RELEASED  
+**Project:** COLMENA CUÁNTICA  
+**Version:** V1.0  
+**Date:** January 21, 2026  
+**Status:** OPERATIONAL  
+**Hardware:** NVIDIA RTX 3060 (12GB VRAM)  
 
 ---
 
@@ -40,8 +41,12 @@ Esto permite al sistema "ver" patrones de precios que ocurrieron hace miles de t
 
 # CAPÍTULO 2: ARQUITECTURA TENSORIAL ($\mathcal{S}$)
 
-El "cerebro" del sistema no recibe precios. Recibe una proyección topológica del mercado.
-Definimos el Espacio de Estado $\mathcal{S}$ como un hipercubo de $\mathbb{R}^{27}$.
+El "cerebro" del sistema no recibe precios crudos. Recibe una proyección topológica del mercado.  
+Definimos el Espacio de Estado $\mathcal{S}$ como un hipercubo de $\mathbb{R}^{51}$:
+
+$$
+\mathbf{x}_t = [\mathbf{z}_{VAE}^{27} \oplus \mathbf{z}_{Math}^{16} \oplus \mathbf{z}_{Self}^{5} \oplus \mathbf{z}_{Swarm}^{3}] \in \mathbb{R}^{51}
+$$
 
 ### 2.1. Descomposición Espectral
 El tensor de entrada $\mathbf{x}_t$ se compone de tres vectores ortogonales que representan diferentes velocidades de flujo de información:
